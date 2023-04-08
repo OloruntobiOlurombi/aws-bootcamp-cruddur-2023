@@ -30,4 +30,4 @@ class UserActivities:
       xray_recorder.end_subsegment()
     finally:
       xray_recorder.end_subsegment()
-  return model
+    return model
