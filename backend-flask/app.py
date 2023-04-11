@@ -15,7 +15,7 @@ from services.messages import *
 from services.create_message import *
 from services.show_activity import *
 
-from lib.cognito_token_verification import CognitoTokenVertification
+from lib.cognito_jwt_token import CognitoJwtToken, extract_access_token, TokenVerifyError
 
 # HoneyComb -----------
 from opentelemetry import trace
@@ -169,19 +169,17 @@ def data_create_message():
 
 @app.route("/api/activities/home", methods=['GET'])
 @xray_recorder.capture('activities_home')
-def data_home():
-  access_token = CognitoJwtToken.extract_access_token(request.headers)
+def data_home():    
+  access_token = extract_access_token(request.headers)
   try:
-    self.token_service.verify(access_token)
-    self.claims = self.token_service.claims
-    g.cognito_claims = self.claims
-  except TokenVerifyError as e:
-    _ = request.data
-    abort(make_response(jsonify(message=str(e)), 401))
-    app.logger.debug('claims')
+    claims = cognito_jwt_token.verify(access_token)
+    # authenicated request
+    app.logger.debug("authenicated")
     app.logger.debug(claims)
-    data = HomeActivities.run()
-    
+  except TokenVerifyrError as e:
+    #unauthenicated request
+    app.logger.debug("unauthenicated")
+    # data = HomeActivities.run()
     return data, 200
 
 @app.route("/api/activities/notifications", methods=['GET'])
