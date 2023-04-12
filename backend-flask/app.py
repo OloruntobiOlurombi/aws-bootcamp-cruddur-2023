@@ -2,7 +2,7 @@ from flask import Flask
 from flask import request
 from flask_cors import CORS, cross_origin
 import os
-import sys 
+import sys
 
 from services.home_activities import *
 from services.notifications_activities import *
@@ -34,22 +34,22 @@ from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
 import watchtower
 import logging
 
-# Rollbar -------- 
+# Rollbar --------
 from time import strftime
-import os 
-import rollbar 
-import rollbar.contrib.flask 
+import os
+import rollbar
+import rollbar.contrib.flask
 from flask import got_request_exception
 
 
 # Configuring Logger to Use CloudWatch
-#LOGGER = logging.getLogger(__name__)
-#LOGGER.setLevel(logging.DEBUG)
-#console_handler = logging.StreamHandler()
-#cw_handler = watchtower.CloudWatchLogHandler(log_group='cruddur')
-#LOGGER.addHandler(console_handler)
-#LOGGER.addHandler(cw_handler)
-#LOGGER.info("test log")
+# LOGGER = logging.getLogger(__name__)
+# LOGGER.setLevel(logging.DEBUG)
+# console_handler = logging.StreamHandler()
+# cw_handler = watchtower.CloudWatchLogHandler(log_group='cruddur')
+# LOGGER.addHandler(console_handler)
+# LOGGER.addHandler(cw_handler)
+# LOGGER.info("test log")
 
 
 # HoneyComb -----------
@@ -73,9 +73,12 @@ tracer = trace.get_tracer(__name__)
 app = Flask(__name__)
 
 cognito_jwt_token = CognitoJwtToken(
-    user_pool_id=os.getenv("AWS_COGNITO_USER_POOL_ID"), 
-    user_pool_client_id=os.getenv("AWS_COGNITO_USER_POOL_CLIENT_ID"),
-    region=os.getenv("AWS_DEFAULT_REGION")
+    # user_pool_id=os.getenv("AWS_COGNITO_USER_POOL_ID"),
+    user_pool_id=os.getenv("us-east-1_4yd2YOrr5"),
+    # user_pool_client_id=os.getenv("AWS_COGNITO_USER_POOL_CLIENT_ID"),
+    user_pool_client_id=os.getenv("671dvkk5hnh732hfqif8tsept3"),
+    #region=os.getenv("AWS_DEFAULT_REGION")
+    region=os.getenv("us-east-1")
 )
 
 # X-RAY ------------
@@ -90,23 +93,25 @@ frontend = os.getenv('FRONTEND_URL')
 backend = os.getenv('BACKEND_URL')
 origins = [frontend, backend]
 cors = CORS(
-  app, 
-  resources={r"/api/*": {"origins": origins}},
-  headers=['Content-Type', 'Authorization'], 
-  expose_headers='Authorization',
-  methods="OPTIONS,GET,HEAD,POST"
+    app,
+    resources={r"/api/*": {"origins": origins}},
+    headers=['Content-Type', 'Authorization'],
+    expose_headers='Authorization',
+    methods="OPTIONS,GET,HEAD,POST"
 )
 
 
-# CloudWatch Logs ------- 
-#@app.after_request
-#def after_request(response):
+# CloudWatch Logs -------
+# @app.after_request
+# def after_request(response):
 #    timestamp = strftime('[%Y-%b-%d %H:%M]')
 #    LOGGER.error('%s %s %s %s %s %s', timestamp, request.remote_addr, request.method, request.scheme, request.full_path, response.status)
 #    return response
 
 # Rollbar ----------
 rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN')
+
+
 @app.before_first_request
 def init_rollbar():
     """init rollbar module"""
@@ -123,10 +128,12 @@ def init_rollbar():
     # send exceptions from `app` to rollbar, using flask's signal system.
     got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
 
+
 @app.route('/rollbar/test')
 def rollbar_test():
     rollbar.report_message('Hello World!', 'warning')
     return "Hello World!"
+
 
 @app.route("/api/message_groups", methods=['GET'])
 def data_message_groups():
@@ -167,28 +174,31 @@ def data_create_message():
         return model['data'], 200
     return
 
+
 @app.route("/api/activities/home", methods=['GET'])
 @xray_recorder.capture('activities_home')
-def data_home():    
-  access_token = extract_access_token(request.headers)
-  try:
-    claims = cognito_jwt_token.verify(access_token)
-    # authenicated request
-    app.logger.debug("authenicated")
-    app.logger.debug(claims)
-    app.logger.debug(claims['username'])
-    data = HomeActivities.run(cognito_user_id=claims['username'])
-  except TokenVerifyError as e:
-    #unauthenicated request
-    app.logger.debug(e)
-    app.logger.debug("unauthenicated")
-    data = HomeActivities.run()
-  return data, 200
+def data_home():
+    access_token = extract_access_token(request.headers)
+    try:
+        claims = cognito_jwt_token.verify(access_token)
+        # authenicated request
+        app.logger.debug("authenicated")
+        app.logger.debug(claims)
+        # app.logger.debug(claims['username'])
+        # data = HomeActivities.run(cognito_user_id=claims['username'])
+    except TokenVerifyError as e:
+        # unauthenicated request
+        app.logger.debug(e)
+        app.logger.debug("unauthenicated")
+        data = HomeActivities.run()
+        return data, 200
+
 
 @app.route("/api/activities/notifications", methods=['GET'])
 def data_notifications():
     data = NotificationsActivities.run()
     return data, 200
+
 
 @app.route("/api/activities/@<string:handle>", methods=['GET'])
 @xray_recorder.capture('activities_user')
@@ -198,6 +208,7 @@ def data_handle(handle):
         return model['errors'], 422
     else:
         return model['data'], 200
+
 
 @app.route("/api/activities/search", methods=['GET'])
 def data_search():
@@ -223,11 +234,13 @@ def data_activities():
         return model['data'], 200
     return
 
+
 @app.route("/api/activities/<string:activity_uuid>", methods=['GET'])
 @xray_recorder.capture('activities_show')
 def data_show_activity(activity_uuid):
     data = ShowActivity.run(activity_uuid=activity_uuid)
     return data, 200
+
 
 @app.route("/api/activities/<string:activity_uuid>/reply", methods=['POST', 'OPTIONS'])
 @cross_origin()
