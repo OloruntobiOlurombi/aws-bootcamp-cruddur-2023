@@ -176,10 +176,10 @@ def data_home():
     # authenicated request
     app.logger.debug("authenicated")
     app.logger.debug(claims)
-  except TokenVerifyrError as e:
+  except TokenVerifyError as e:
     #unauthenicated request
     app.logger.debug("unauthenicated")
-    # data = HomeActivities.run()
+    data = HomeActivities.run()
     return data, 200
 
 @app.route("/api/activities/notifications", methods=['GET'])
